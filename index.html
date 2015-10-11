@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>SpriteKit Tools - SKPhysicsBody Path Generator (Swift version </title>
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css">
+
+    <style>
+        /* disable responsive */
+        .container {
+            max-width: none;
+            width: 970px;
+        }
+
+            #sprite {
+                background-color: #eee;
+                position: absolute;
+            }
+            #path {
+                cursor: crosshair;
+                opacity: 0.5;
+            }
+        </style>
+
+    </head>
+    <body>
+        <div class="container">
+            <h1>SKPhysicsBody Path Generator</h1>
+            <p class="lead">Want to use SKPhysicsBody(polygonFromPath: path) easier way like me? Here with a small helper for easier path drawing, hope it help others too.</p>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Basic Instruction</h5>
+                    <ol>
+                        <li><small>Drag and drop the sprite image into drop zone.</small></li>
+                        <li><small>Start drawing path by clicking on coordinates.</small></li>
+                    </ol>
+                </div>
+                <div class="col-md-6">
+                    <h5>Some Rules / Known Issue</h5>
+                    <ul>
+                        <li><small>Path need to be as a convex polygonal path with counterclockwise winding and no self intersections. The points are specified relative to the owning node’s origin. <a href="https://developer.apple.com/library/ios/documentation/SpriteKit/Reference/SKPhysicsBody_Ref/Reference/Reference.html#//apple_ref/occ/clm/SKPhysicsBody/bodyWithPolygonFromPath:" target="_blank">(documentation link)</a></small></li>
+                        <li><small>Please use Chrome for best compatibility as I have not tested on other browsers.</small></li>
+                    </ul>
+                </div>
+            </div>
+
+
+            <hr>
+
+            <div class="btn-group">
+                <button class="btn btn-primary" type="button" onclick="resetShape()">Reset Shape</button>
+                <button class="btn btn-primary" type="button" onclick="location.reload()">Reset All</button>
+            </div>
+            <input type="checkbox" onclick="toggleRetinaMode()" id="retinaCheckbox" checked> Retina? (please check before declaring path)
+            <br><br>
+
+            <canvas id="sprite" width="940" height="100"></canvas>
+            <canvas id="path" width="0" height="100"></canvas>
+
+            <p class="text-muted"><small>X:<span id="tooltipX">0</span> Y:<span id="tooltipY">0</span></small></p>
+            <br>
+
+            <h5>Output</h5>
+<pre>
+let sprite = SKSpriteNode(imageNamed: "codeImgName")
+
+let offsetX = sprite.size.width * sprite.anchorPoint.x
+let offsetY = sprite.size.height * sprite.anchorPoint.y
+
+let path = CGPathCreateMutable()
+
+<span id="codeCGPath"></span>
+CGPathCloseSubpath(path)
+
+sprite.physicsBody = SKPhysicsBody(polygonFromPath: path)
+</pre>
+
+        </div>
+
+        <script>
+// reference from http://davidwalsh.name/resize-image-canvas
+
+var spriteCanvas = document.getElementById('sprite');
+var spriteContext = spriteCanvas.getContext('2d');
+spriteContext.fillText('Drop Sprite Image Here', 400, 50);
+
+var pathCanvas = document.getElementById('path');
+var pathContext = pathCanvas.getContext('2d');
+
+function render(src){
+    var image = new Image();
+    image.onload = function(){
+        spriteContext.clearRect(0, 0, spriteCanvas.width, spriteCanvas.height);
+        spriteCanvas.width = image.width;
+        spriteCanvas.height = image.height;
+        spriteContext.drawImage(image, 0, 0, image.width, image.height);
+
+        pathContext.clearRect(0, 0, pathCanvas.width, pathCanvas.height);
+        pathCanvas.width = image.width;
+        pathCanvas.height = image.height;
+    };
+    image.src = src;
+}
+
+function loadImage(src){
+
+    if(!src.type.match(/image.*/)){
+        console.log('Dropped file is not image format');
+        return;
+    }
+
+    var reader = new FileReader();
+    reader.onload = function(e){
+        render(e.target.result);
+    };
+    reader.readAsDataURL(src);
+
+    var fileName = src.name;
+    var codeImgName = document.getElementById('codeImgName');
+    codeImgName.innerHTML = fileName;
+}
+
+spriteCanvas.addEventListener('dragover', function(e){
+    e.preventDefault();
+}, true);
+
+spriteCanvas.addEventListener('drop', function(e){
+    e.preventDefault();
+    loadImage(e.dataTransfer.files[0]);
+}, true);
+
+
+var retinaMode = true;
+function toggleRetinaMode(){
+    var status = document.getElementById('retinaCheckbox');
+
+    retinaMode = status.checked ? true : false;
+}
+
+
+
+var actualX = 0;
+var actualY = 0;
+var displayX = document.getElementById('tooltipX');
+var displayY = document.getElementById('tooltipY');
+
+pathCanvas.onmousemove = function(e){
+    actualX = e.pageX - this.offsetLeft;
+    actualY = e.pageY - this.offsetTop;
+    displayX.innerHTML = retinaMode ? Math.floor(actualX / 2) : actualX;
+    displayY.innerHTML = retinaMode ? Math.floor((spriteCanvas.height - actualY - 1) / 2) : spriteCanvas.height - actualY - 1;
+}
+
+var pathArray = new Array();
+pathCanvas.onclick = function(e){
+    var coor = {
+        actualX: actualX,
+        actualY: actualY,
+        displayX: displayX.innerHTML,
+        displayY: displayY.innerHTML,
+    };
+    pathArray.push(coor);
+    refreshShape(pathArray);
+}
+
+var codeCGPath = document.getElementById('codeCGPath');
+function refreshShape(pathArray){
+
+    pathContext.clearRect(0, 0, pathCanvas.width, pathCanvas.height);
+
+    pathContext.beginPath();
+
+    for(var i in pathArray){
+        if(i == 0) {
+            pathContext.moveTo(pathArray[i].actualX, pathArray[i].actualY);
+            codeCGPath.innerHTML = 'CGPathMoveToPoint(path, nil, '+pathArray[i].displayX+' - offsetX, '+pathArray[i].displayY+' - offsetY)<br>';
+            continue;
+        }
+        pathContext.lineTo(pathArray[i].actualX, pathArray[i].actualY);
+        codeCGPath.innerHTML += 'CGPathAddLineToPoint(path, nil, '+pathArray[i].displayX+' - offsetX, '+pathArray[i].displayY+' - offsetY)<br>';
+    }
+
+    pathContext.closePath();
+    pathContext.lineWidth = 1;
+    pathContext.strokeStyle = 'blue';
+    pathContext.stroke();
+    pathContext.fillStyle = 'blue';
+    pathContext.fill();
+}
+
+function resetShape(){
+    pathArray = new Array();
+    codeCGPath.innerHTML = null;
+    pathContext.clearRect(0, 0, pathCanvas.width, pathCanvas.height);
+}
+        </script>
+    </body>
+</html>
