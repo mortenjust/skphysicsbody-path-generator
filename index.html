@@ -67,12 +67,12 @@ let sprite = SKSpriteNode(imageNamed: "codeImgName")
 let offsetX = sprite.size.width * sprite.anchorPoint.x
 let offsetY = sprite.size.height * sprite.anchorPoint.y
 
-let path = CGPathCreateMutable()
+let path = CGMutablePath()
 
 <span id="codeCGPath"></span>
-CGPathCloseSubpath(path)
+path.closeSubpath()
 
-sprite.physicsBody = SKPhysicsBody(polygonFromPath: path)
+sprite.physicsBody = SKPhysicsBody(polygonFrom: path)
 </pre>
 
         </div>
@@ -173,11 +173,11 @@ function refreshShape(pathArray){
     for(var i in pathArray){
         if(i == 0) {
             pathContext.moveTo(pathArray[i].actualX, pathArray[i].actualY);
-            codeCGPath.innerHTML = 'CGPathMoveToPoint(path, nil, '+pathArray[i].displayX+' - offsetX, '+pathArray[i].displayY+' - offsetY)<br>';
+            codeCGPath.innerHTML = 'path.move(to: CGPoint((x'+pathArray[i].displayX+' - offsetX, y: '+pathArray[i].displayY+' - offsetY)<br>';
             continue;
         }
         pathContext.lineTo(pathArray[i].actualX, pathArray[i].actualY);
-        codeCGPath.innerHTML += 'CGPathAddLineToPoint(path, nil, '+pathArray[i].displayX+' - offsetX, '+pathArray[i].displayY+' - offsetY)<br>';
+        codeCGPath.innerHTML += 'path.addLine(to: CGPoint(x:'+pathArray[i].displayX+' - offsetX, y: '+pathArray[i].displayY+' - offsetY)<br>';
     }
 
     pathContext.closePath();
